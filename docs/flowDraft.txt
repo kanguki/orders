@@ -1,0 +1,6 @@
+functionalities:
+- kafka pub-sub //(optional) if not consuming from kafka, then it should listen to websocket 
+- http requests 
+- database execution
+- cache storage
+
