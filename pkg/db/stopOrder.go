@@ -12,7 +12,6 @@ type StopOrderRepo struct {
 
 func GetStopOrderRepo() *StopOrderRepo {
 	db := getDb()
-	db.AutoMigrate(&StopOrder{})
 	return &StopOrderRepo{
 		Db: db,
 	}
@@ -26,38 +25,39 @@ func (sor StopOrderRepo) Update(so StopOrder) error {
 	return sor.Db.Save(so).Error
 }
 
-func (sor StopOrderRepo) GetId(so *[]StopOrder) error {
+func (sor StopOrderRepo) Get(so *[]StopOrder) error {
 	return sor.Db.Find(so).Error
 }
 
-func (sor StopOrderRepo) Get(so *StopOrder, id string) error {
+func (sor StopOrderRepo) GetId(so *StopOrder, id string) error {
 	return sor.Db.Where("id = ?", id).First(so).Error
 }
 
 type StopOrder struct {
-	gorm.Model
-	id             string
-	code           string
-	quantity       int
-	sellBuyType    string //BUY, SELL
-	stopPrice      float32
-	stopVolume     float32
-	orderPrice     float32
-	orderType      string //STOP, STOP_LIMIT
-	status         string //PENDING, COMPLETED, CANCELLED, FAILED, SENDING
-	fromDate       time.Time
-	toDate         time.Time
-	username       string
-	accountNumber  string
-	orderNumber    string
-	failReason     string
-	securitiesType string //STOCK, FUND, BOND, ETF, CW, FUTURES
-	orderedAt      time.Time
-	cancelledAt    time.Time
-	cancelledBy    string
-	header         string
-	sourceIp       string
-	tradingAccSeq  string
-	createdAt      time.Time
-	updatedAt      time.Time
+	Id             int64  `gorm:"primaryKey,unique"`
+	Code           string `gorm:"size:20"`
+	Quantity       int32
+	SellBuyType    string //BUY, SELL
+	StopPrice      float32
+	StopVolume     float32
+	OrderPrice     float32
+	OrderType      string `gorm:"size:100"` //STOP, STOP_LIMIT
+	Status         string `gorm:"size:50"`  //PENDING, COMPLETED, CANCELLED, FAILED, SENDING
+	FromDate       time.Time
+	ToDate         time.Time
+	Username       string `gorm:"size:255"`
+	AccountNumber  string `gorm:"size:255"`
+	OrderNumber    string `gorm:"size:255"`
+	FailReason     string
+	SecuritiesType string //STOCK, FUND, BOND, ETF, CW, FUTURES
+	OrderedAt      time.Time
+	CancelledAt    time.Time
+	CancelledBy    string `gorm:"size:255"`
+	Header         string
+	SourceIp       string    `gorm:"size:255"`
+	TradingAccSeq  string    `gorm:"size:10"`
+	CreatedBy      string    `gorm:"size:255"`
+	UpdatedBy      string    `gorm:"size:255"`
+	CreatedAt      time.Time `gorm:"autoCreateTime"`
+	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
 }
