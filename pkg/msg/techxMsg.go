@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+//REQUEST
 func NewKafkaRequest(topic string, metadata string, data interface{}) (msg string, msgId string) {
 	if os.Getenv("MSG_TEMPLATE") == "TECHX" {
 		return NewTechxRequestMsg(topic, metadata, data)
@@ -18,26 +19,9 @@ func NewKafkaRequest(topic string, metadata string, data interface{}) (msg strin
 	}
 }
 
-func GetMsgData(msg string) (string, string) {
-	if os.Getenv("MSG_TEMPLATE") == "TECHX" {
-		techxMsg := (&TechxMsg{}).Deserialize(msg)
-		if techxMsg.MessageType == "RESPONSE" {
-			return Serialize(techxMsg.Data), techxMsg.TransactionId
-		}
-		return "techx-msg-but-not-response", ""
-	} else {
-		log.Fatal("MSG_TEMPLATE is not set. exit.")
-		return "", ""
-	}
-}
-
 func NewTechxRequestMsg(topic string, uri string, data interface{}) (string, string) {
-	msg, id := NewTechxRequest(topic, uri, data)
+	msg, id := CreateTechxMsg(topic, uri, "REQUEST_RESPONSE", data, "REQUEST")
 	return Serialize(msg), id
-}
-
-func NewTechxRequest(topic string, uri string, data interface{}) (*TechxMsg, string) {
-	return CreateTechxMsg(topic, uri, "REQUEST_RESPONSE", data, "REQUEST")
 }
 
 func CreateTechxMsg(topic string, uri string, responseUri string, data interface{}, messageType string) (*TechxMsg, string) {
@@ -48,15 +32,41 @@ func CreateTechxMsg(topic string, uri string, responseUri string, data interface
 		MessageType:   messageType,
 		SourceId:      APPLICATION_NAME,
 		MessageId:     now,
-		TransactionId: strconv.FormatInt(time.Now().Unix(), 10),
+		TransactionId: strconv.FormatInt(now, 10),
 		Uri:           uri,
 		ResponseDestination: TechxMsgResponseDestination{
 			Topic: topicResponse,
 			Uri:   responseUri,
 		},
 		Data: dataStr,
-	}, strconv.FormatInt(time.Now().Unix(), 10)
+	}, strconv.FormatInt(now, 10)
+}
 
+//RESPONSE
+func NewKafkaResponse(id string, data interface{}) (msg string, msgId string) {
+	if os.Getenv("MSG_TEMPLATE") == "TECHX" {
+		return NewTechxResponseMsg(id, data)
+	} else {
+		log.Fatal("MSG_TEMPLATE is not set. exit.")
+		return "", ""
+	}
+}
+
+func NewTechxResponseMsg(id string, data interface{}) (string, string) {
+	msg := CreateTechxResponse(id, data)
+	return Serialize(msg), id
+}
+
+func CreateTechxResponse(id string, data interface{}) *TechxMsg {
+	dataStr := Serialize(data)
+	return &TechxMsg{
+		MessageType:   "RESPONSE",
+		SourceId:      APPLICATION_NAME,
+		MessageId:     "--",
+		TransactionId: id,
+		Uri:           "REQUEST_RESPONSE",
+		Data:          dataStr,
+	}
 }
 
 type TechxMsg struct {
@@ -78,7 +88,9 @@ func (techxMsg *TechxMsg) Deserialize(data string) *TechxMsg {
 	//https://stackoverflow.com/questions/14289256/cannot-convert-data-type-interface-to-type-string-need-type-assertion
 	techxMsg, ok := deserialize(data, techxMsg).(*TechxMsg)
 	if ok == false {
-		log.Fatal("Error casting msg to TechxMsg.", techxMsg)
+		// log.Fatal("Error casting msg to TechxMsg.", techxMsg)
+		log.Printf("Error casting msg to TechxMsg...")
+		return nil
 	}
 	return techxMsg
 }
